@@ -1,0 +1,464 @@
+--[[--
+
+Pixel Sorting Fuse for Davinci Resolve
+
+Chris Ridings
+www.chrisridings.com
+
+--]]--
+
+FuRegisterClass("PixelSorting", CT_Tool, {
+	REGS_Category = "Fuses",
+	REGS_OpIconString = "fPS",
+	REGS_OpDescription = "Pixel Sorting",
+	})
+
+
+
+function Create()	
+
+	SiteButton = self:AddInput("Visit www.chrisridings.com", "Label1", {
+		LINKID_DataType = "Text",
+		INPID_InputControl = "ButtonControl",
+		INP_DoNotifyChanged = true,
+		INP_External = false,
+	})	
+	YouTubeButton = self:AddInput("Visit the Youtube Channel", "Label2", {
+		LINKID_DataType = "Text",
+		INPID_InputControl = "ButtonControl",
+		INP_DoNotifyChanged = true,
+		INP_External = false,
+	})	
+	
+
+	InImage = self:AddInput("Input", "Input", {
+		LINKID_DataType = "Image",
+		LINK_Main = 1,
+		})
+
+	OutImage = self:AddOutput("Output", "Output", {
+		LINKID_DataType = "Image",
+		LINK_Main = 1,
+		})	
+
+	InDir = self:AddInput("Direction", "Direction", {
+			LINKID_DataType = "Number",
+			INPID_InputControl = "ComboControl",
+			INP_Default = 0.0,
+			INP_Integer = true,
+			ICD_Width = 1,
+			{ CCS_AddString = "Vertical", },
+			{ CCS_AddString = "Horizontal", },
+			CC_LabelPosition = "Vertical",
+			})		
+			
+	InSort = self:AddInput("Sort By", "Sort", {
+			LINKID_DataType = "Number",
+			INPID_InputControl = "ComboControl",
+			INP_Default = 0.0,
+			INP_Integer = true,
+			ICD_Width = 1,
+			{ CCS_AddString = "Luminance", },
+			{ CCS_AddString = "Hue", },
+			{ CCS_AddString = "Saturation", },
+			{ CCS_AddString = "Red Channel", },
+			{ CCS_AddString = "Blue Channel", },
+			{ CCS_AddString = "Green Channel", },
+			CC_LabelPosition = "Vertical",
+			})			
+
+	InDirection = self:AddInput("Sort Values", "SortValues", {
+			LINKID_DataType = "Number",
+			INPID_InputControl = "ComboControl",
+			INP_Default = 0.0,
+			INP_Integer = true,
+			ICD_Width = 1,
+			{ CCS_AddString = "Increasing", },
+			{ CCS_AddString = "Decreasing", },
+			CC_LabelPosition = "Vertical",
+			})				
+			
+	InOutputType = self:AddInput("Output Type", "OutputType", {
+			LINKID_DataType = "Number",
+			INPID_InputControl = "ComboControl",
+			INP_Default = 0.0,
+			INP_Integer = true,
+			ICD_Width = 1,
+			{ CCS_AddString = "Pixel Sort", },
+			{ CCS_AddString = "Sort Values", },
+			{ CCS_AddString = "Selection", },
+			CC_LabelPosition = "Vertical",
+			})				
+		
+	LuminanceLower = self:AddInput("Range Low", "luminancelower", {
+		LINKID_DataType = "Number",
+		INPID_InputControl = "RangeControl",
+		INP_Default = 0,
+		INP_Integer = false,
+		IC_ControlGroup = 3,
+		IC_ControlID = 0,
+		})			
+		
+	LuminanceUpper = self:AddInput("Range High", "luminanceupper", {
+		LINKID_DataType = "Number",
+		INPID_InputControl = "RangeControl",
+		INP_Default = 1,
+		INP_Integer = false,
+		IC_ControlGroup = 3,
+		IC_ControlID = 1,
+		})	
+
+	EffectMask = self:AddInput("Effect Mask", "EffectMask", {
+        LINKID_DataType = "Mask",
+        LINK_Main = 4,
+        INP_Required = false
+    })
+	
+	Noise = self:AddInput("Noise", "Noise", {
+        LINKID_DataType = "Image",
+        LINK_Main = 5,
+        INP_Required = false
+    })			
+	
+	MinLength = self:AddInput("Min Len", "MinLen", {
+		LINKID_DataType = "Number",
+		INPID_InputControl = "RangeControl",
+		INP_Default = 0,
+		INP_Integer = true,
+		IC_ControlGroup = 6,
+		IC_ControlID = 0,
+		})			
+		
+	MaxLength = self:AddInput("Max Len", "MaxLen", {
+		LINKID_DataType = "Number",
+		INPID_InputControl = "RangeControl",
+		INP_Default = 10000,
+		INP_Integer = true,
+		IC_ControlGroup = 6,
+		IC_ControlID = 1,
+		})	
+
+	InApply = self:AddInput("Noise Apply Mode", "ApplyMode", {
+		LINKID_DataType = "Number",
+		INPID_InputControl = "ComboControl",
+		INP_Default = 0.0,
+		INP_Integer = true,
+		ICD_Width = 1,
+		CC_LabelPosition = "Vertical",
+		INP_DoNotifyChanged = true,
+		{ CCS_AddString = "Normal", },
+		{ CCS_AddString = "Screen", },
+		{ CCS_AddString = "Dissolve", },
+		{ CCS_AddString = "Multiply", },
+		{ CCS_AddString = "Overlay", },
+		{ CCS_AddString = "Soft Light", },
+		{ CCS_AddString = "Hard Light", },
+		{ CCS_AddString = "Color Dodge", },
+		{ CCS_AddString = "Color Burn", },
+		{ CCS_AddString = "Darken", },
+		{ CCS_AddString = "Lighten", },
+		{ CCS_AddString = "Difference", },
+		{ CCS_AddString = "Exclusion", },
+		{ CCS_AddString = "Hue", },
+		{ CCS_AddString = "Saturation", },
+		{ CCS_AddString = "Color", },
+		{ CCS_AddString = "Luminosity",  },
+		})
+		
+	InOperation = self:AddInput("Noise Operator", "Operator", {
+		LINKID_DataType = "Number",
+		INPID_InputControl = "ComboControl",
+		INP_Default = 0.0,
+		INP_Integer = true,
+		ICD_Width = 1,
+		{ CCS_AddString = "Over", },
+		{ CCS_AddString = "In", },
+		{ CCS_AddString = "Held Out", },
+		{ CCS_AddString = "Atop", },
+		{ CCS_AddString = "XOr", },
+		CC_LabelPosition = "Vertical",
+		})		
+		
+end
+
+
+function NotifyChanged(inp, param, time)
+	if (param ~= nil) then
+		if (param.Value == 1) then
+			if (inp == SiteButton) then
+				bmd.openurl("https://www.chrisridings.com")
+			end
+			if (inp == YouTubeButton) then
+				bmd.openurl("https://www.youtube.com/c/ChrisRidings")
+			end	
+		end
+	end
+end
+
+local conv = function (r, g, b, a)
+
+  local max, min = math.max(r, g, b), math.min(r, g, b)
+  local h, s, l
+
+  l = (max + min) * 0.5
+
+  if max == min then
+    h, s = 0, 0 -- achromatic
+  else
+    local d = max - min
+    local s
+    if l > 0.5 then s = d / (2 - max - min) else s = d / (max + min) end
+    if max == r then
+      h = (g - b) / d
+      if g < b then h = h + 6 end
+    elseif max == g then h = (b - r) / d + 2
+    elseif max == b then h = (r - g) / d + 4
+    end
+    h = h / 6
+  end
+
+  return h, s, l, a or 255
+end
+
+function Process(req) 
+	-- Let's start by making something to work out luminance and output that
+	local img = InImage:GetValue(req)
+	local out = Image({IMG_Like = img})	
+	local effectmask = Image({IMG_Like = img})
+	local maxsize = MaxLength:GetValue(req).Value
+	local minsize = MinLength:GetValue(req).Value
+	if (minsize < 0) then
+		minsize = 0
+	end
+	local direction = InDirection:GetValue(req).Value
+	local sorttype = InSort:GetValue(req).Value
+	local outputtype = InOutputType:GetValue(req).Value
+	local horvert = InDir:GetValue(req).Value
+	if (horvert == 0) then
+		if (maxsize > img.Height) then
+			maxsize = img.Height
+		end	
+	else
+		if (maxsize > img.Width) then
+			maxsize = img.Width
+		end
+	end	
+	if (EffectMask:GetValue(req) ~= nil) then
+		effectmask = EffectMask:GetValue(req)
+	else
+		effectmask:Fill(Pixel({R = 1, G = 1, B = 1, A = 1}))
+	end
+	local noise = Image({IMG_Like = img})
+	if (Noise:GetValue(req) ~= nil) then
+		noise = Noise:GetValue(req)
+	else
+		noise:Fill(Pixel({R = 0, G = 0, B = 0, A = 0}))
+	end	
+	local apply_mode = InApply:GetValue(req).Value + 1
+	local apply_operator = InOperation:GetValue(req).Value + 1
+	local apply_modes = { 
+		"Merge", 
+		"Screen", 
+		"Dissolve",
+		"Multiply",
+		"Overlay",
+		"SoftLight",
+		"HardLight",
+		"ColorDodge",
+		"ColorBurn",
+		"Darken",
+		"Lighten",
+		"Difference",
+		"Exclusion",
+		"Hue",
+		"Saturation",
+		"Color",
+		"Luminosity", 
+		}
+	local apply_operators = { "Over", "In", "Held Out", "Atop", "XOr", }
+	
+	local imgb = img:CopyOf()
+	local overlay = imgb:MergeOf(noise, {MO_ApplyMode = apply_modes[apply_mode], MO_ApplyOperator = apply_operators[apply_operator]})	
+	local lumlower = LuminanceLower:GetValue(req).Value
+	local lumupper = LuminanceUpper:GetValue(req).Value
+	-- Repeating code here doesn't seem great from a code management perspective, but is the quickest idea I can think of.
+	if (horvert == 0) then
+		-- Up/Down
+		self:DoMultiProcess(nil, { Psortfunc = sortfunc, Psorttype = sorttype, Pconv = conv, Pimg = img, Pout = out, Peffectmask = effectmask, Poverlay = overlay, Pmaxsize = maxsize, Pminsize = minsize, Pdirection = direction, Poutputtype = outputtype, Plumlower = lumlower, Plumupper = lumupper }, img.Width, function (x)
+			local p = Pixel()
+			local lum = 0
+			local lump = 0
+			local rangebegin = -1
+			local currange = {}
+			local size = 0
+			local m = Pixel()
+			local o = Pixel()
+			local cp = Pixel()	
+			for y = Pimg.Height - 1, 0, -1 do
+				if (Pmaxsize == 0 or (Plumlower == Plumupper)) then
+					-- Everything is unselected so just return a basic result
+					Pimg:GetPixel(x,y,p)
+					Pout:SetPixel(x,y,p)
+				else
+					Pimg:GetPixel(x,y,p)
+					Poverlay:GetPixel(x,y,o)
+					Peffectmask:GetPixel(x,y,m)
+					oh,os,ol,oa = Pconv(o.R, o.G, o.B, o.A)
+					ph,ps,pl,pa = Pconv(p.R, p.G, p.B, p.A)
+					if (Psorttype == 0) then
+						lum = ol
+						lump = pl
+					elseif (Psorttype == 1) then
+						lum = oh
+						lump = ph
+					elseif (Psorttype == 2) then
+						lum = os
+						lump = ps
+					elseif (Psorttype == 3) then
+						lum = o.R
+						lump = p.R
+					elseif (Psorttype == 4) then
+						lum = o.G
+						lump = p.G
+					elseif (Psorttype == 5) then
+						lum = o.B
+						lump = p.B
+					else
+						lum = 0
+						lump = 0
+					end
+					if (Poutputtype == 1) then
+						if (m.A > 0) then
+							Pout:SetPixel(x,y,Pixel({R = lum, G = lum, B = lum, A = o.A}))
+						end
+					end
+					if ((Poutputtype == 0 or Poutputtype == 2)) then
+						if (((lum >= Plumlower and lum <= Plumupper) and size < Pmaxsize and m.A > 0 and y ~= 0) or (size < Pminsize and y ~= 0 and m.A > 0 and rangebegin ~= -1 )) then
+							if (Poutputtype == 2) then Pout:SetPixel(x,y,Pixel({R = 1, G = 1, B = 1, A = 1})) end
+							if (rangebegin == -1) then
+								rangebegin = y					
+							end	
+							if (rangebegin ~= -1) then
+								table.insert(currange,1,{lump,p.R,p.G,p.B,p.A})
+								size = size + 1
+							end				
+						else
+							if (Poutputtype == 2) then Pout:SetPixel(x,y,Pixel({R = 0, G = 0, B = 0, A = 0})) end
+							if (rangebegin ~= -1 or size >= Pmaxsize) then
+								size = 0
+								-- At this point currange as a table should hold the pixels from rangebegin to y - 1
+								-- we need to sort it
+								if (Poutputtype == 0) then
+									table.sort(currange, function(a,b) if (Pdirection == 0) then return a[1]<b[1] else return a[1]>b[1] end end)
+									for cy = rangebegin, y, -1 do
+										if (currange[(rangebegin - cy)+1] == nil) then
+											break
+										end
+										cp.R = currange[(rangebegin - cy) + 1][2]
+										cp.G = currange[(rangebegin - cy) + 1][3]
+										cp.B = currange[(rangebegin - cy) + 1][4]
+										cp.A = currange[(rangebegin - cy) + 1][5]
+										Pout:SetPixel(x,cy,cp)
+									end						
+								end
+								rangebegin = -1
+								currange = {}
+							end
+							if (Poutputtype == 0) then Pout:SetPixel(x,y,p) end
+						end			
+					end
+				end
+			end
+		end)
+	end
+	if (horvert == 1) then
+		-- Left/Right
+		self:DoMultiProcess(nil, { Psortfunc = sortfunc, Psorttype = sorttype, Pconv = conv, Pimg = img, Pout = out, Peffectmask = effectmask, Poverlay = overlay, Pmaxsize = maxsize, Pminsize = minsize, Pdirection = direction, Poutputtype = outputtype, Plumlower = lumlower, Plumupper = lumupper }, img.Height, function (y)
+			local p = Pixel()
+			local lum = 0
+			local lump = 0
+			local rangebegin = -1
+			local currange = {}
+			local size = 0
+			local m = Pixel()
+			local o = Pixel()
+			local cp = Pixel()	
+			for x = 0, Pimg.Width - 1 do
+				if (Pmaxsize == 0 or (Plumlower == Plumupper)) then
+					-- Everything is unselected so just return a basic result
+					Pimg:GetPixel(x,y,p)
+					Pout:SetPixel(x,y,p)
+				else
+					Pimg:GetPixel(x,y,p)
+					Poverlay:GetPixel(x,y,o)
+					Peffectmask:GetPixel(x,y,m)
+					oh,os,ol,oa = Pconv(o.R, o.G, o.B, o.A)
+					ph,ps,pl,pa = Pconv(p.R, p.G, p.B, p.A)
+					if (Psorttype == 0) then
+						lum = ol
+						lump = pl
+					elseif (Psorttype == 1) then
+						lum = oh
+						lump = ph
+					elseif (Psorttype == 2) then
+						lum = os
+						lump = ps
+					elseif (Psorttype == 3) then
+						lum = o.R
+						lump = p.R
+					elseif (Psorttype == 4) then
+						lum = o.G
+						lump = p.G
+					elseif (Psorttype == 5) then
+						lum = o.B
+						lump = p.B
+					else
+						lum = 0
+						lump = 0
+					end
+					if (Poutputtype == 1) then
+						if (m.A > 0) then
+							Pout:SetPixel(x,y,Pixel({R = lum, G = lum, B = lum, A = o.A}))
+						end
+					end
+					if (Poutputtype == 0 or Poutputtype == 2) then
+						if (((lum >= Plumlower and lum <= Plumupper) and size < Pmaxsize and m.A > 0 and x ~= Pimg.Width - 1) or (size < Pminsize and x ~= Pimg.Width - 1 and m.A > 0 and rangebegin ~= -1 )) then
+							if (Poutputtype == 2) then Pout:SetPixel(x,y,Pixel({R = 1, G = 1, B = 1, A = 1})) end
+							if (rangebegin == -1) then
+								rangebegin = x				
+							end	
+							if (rangebegin ~= -1) then
+								table.insert(currange,1,{lump,p.R,p.G,p.B,p.A})
+								size = size + 1
+							end				
+						else
+							if (Poutputtype == 2) then Pout:SetPixel(x,y,Pixel({R = 0, G = 0, B = 0, A = 0})) end
+							if (rangebegin ~= -1 or size >= Pmaxsize) then		
+								size = 0
+								-- At this point currange as a table should hold the pixels from rangebegin to x - 1
+								-- we need to sort it
+								if (Poutputtype == 0) then						
+									table.sort(currange, function(a,b) if (Pdirection == 0) then return a[1]<b[1] else return a[1]>b[1] end end)									
+									for cx = rangebegin, x do
+										if (currange[(cx-rangebegin)+1] == nil) then								
+											break
+										end
+										cp.R = currange[(cx-rangebegin) + 1][2]
+										cp.G = currange[(cx-rangebegin) + 1][3]
+										cp.B = currange[(cx-rangebegin) + 1][4]
+										cp.A = currange[(cx-rangebegin) + 1][5]
+										Pout:SetPixel(cx,y,cp)
+									end						
+								end
+								rangebegin = -1
+								currange = {}
+							end
+							if (Poutputtype == 0) then Pout:SetPixel(x,y,p) end
+						end			
+					end
+				end
+			end
+		end)	
+	end
+	OutImage:Set(req, out)
+end
